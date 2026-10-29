@@ -1,0 +1,23 @@
+# Build output
+build/
+out/
+cmake-build-*/
+*.o
+*.obj
+*.a
+*.exe
+
+# Editor / IDE
+.vscode/
+.idea/
+.cache/
+compile_commands.json
+
+# Simulation logs and generated plots
+*.csv
+*.png
+
+# Python
+__pycache__/
+*.pyc
+.venv/
