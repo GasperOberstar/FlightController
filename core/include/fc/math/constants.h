@@ -1,1 +1,5 @@
-constexpr float Pi = 3.14159265f;
+#pragma once
+
+namespace fc{
+    inline constexpr float kPi = 3.14159265358979f;
+}
