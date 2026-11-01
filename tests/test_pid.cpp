@@ -26,7 +26,8 @@ bool configure(fc::Pid& p, float kp, float ki, float kd,
                float kff = 0.0f, float ffCutoffHz = 100.0f) {
     const bool ok = p.setGains(kp, ki, kd, kDt, kff) && p.setILimit(iLimit) &&
                     p.setFilteredD(dCutoffHz, kDt) &&
-                    p.setFilteredFF(ffCutoffHz, kDt);
+                    p.setFilteredFF(ffCutoffHz, kDt) &&
+                    p.setOutLimit(1000.0f);
     p.reset(0.0f, 0.0f);
     return ok;
 }
@@ -433,4 +434,83 @@ TEST(PidFF, SetGainsRejectsInvalidKff) {
     EXPECT_FALSE(p.setGains(1.0f, 1.0f, 1.0f, kDt, kNaN));
     EXPECT_FALSE(p.setGains(1.0f, 1.0f, 1.0f, kDt, kInf));
     EXPECT_TRUE(p.setGains(1.0f, 1.0f, 1.0f, kDt, 0.0f));
+}
+
+// ---------- Output limits (symmetric: [-limit, +limit]) ----------
+
+TEST(PidOutput, ClampsToMaxAndMin) {
+    fc::Pid p;
+    ASSERT_TRUE(configure(p, 10.0f, 0.0f, 0.0f));
+    ASSERT_TRUE(p.setOutLimit(0.5f));
+    EXPECT_FLOAT_EQ(p.update(1.0f, 0.0f), 0.5f);    // P = 10
+    EXPECT_FLOAT_EQ(p.update(-1.0f, 0.0f), -0.5f);  // P = -10
+}
+
+TEST(PidOutput, InsideLimitsIsUnchanged) {
+    fc::Pid p;
+    ASSERT_TRUE(configure(p, 0.2f, 0.0f, 0.0f));
+    ASSERT_TRUE(p.setOutLimit(0.5f));
+    EXPECT_FLOAT_EQ(p.update(1.0f, 0.0f), 0.2f);
+    EXPECT_FLOAT_EQ(p.update(-1.0f, 0.0f), -0.2f);
+}
+
+TEST(PidOutput, ValueExactlyOnLimitIsReturnedUnchanged) {
+    fc::Pid p;
+    ASSERT_TRUE(configure(p, 0.5f, 0.0f, 0.0f));
+    ASSERT_TRUE(p.setOutLimit(0.5f));
+    EXPECT_FLOAT_EQ(p.update(1.0f, 0.0f), 0.5f);
+}
+
+TEST(PidOutput, ClampsTheSumNotTheIndividualTerms) {
+    // ki = 4000 gives Ki_ = 1, so the integrator hits iLimit = 0.3 at once.
+    // P = 0.4. Each term is below 0.5, but the sum 0.7 is not.
+    fc::Pid p;
+    ASSERT_TRUE(configure(p, 0.4f, 4000.0f, 0.0f, 0.3f));
+    ASSERT_TRUE(p.setOutLimit(0.5f));
+    EXPECT_FLOAT_EQ(p.update(1.0f, 0.0f), 0.5f);
+}
+
+TEST(PidOutput, FeedforwardIsIncludedBeforeClamping) {
+    // First FF sample after a unit step is alpha * 40 = ~5.4, far over 0.5.
+    fc::Pid p;
+    ASSERT_TRUE(configure(p, 0.0f, 0.0f, 0.0f, 1.0f, 100.0f, kKff, kFfCutoff));
+    ASSERT_TRUE(p.setOutLimit(0.5f));
+    EXPECT_FLOAT_EQ(p.update(1.0f, 0.0f), 0.5f);
+}
+
+TEST(PidOutput, HugeFiniteInputsStayWithinLimits) {
+    // 1e10 * 1e30 overflows float to +inf; the clamp must still bound it.
+    fc::Pid p;
+    ASSERT_TRUE(configure(p, 1e10f, 0.0f, 0.0f));
+    ASSERT_TRUE(p.setOutLimit(0.5f));
+    EXPECT_FLOAT_EQ(p.update(1e30f, 0.0f), 0.5f);
+    EXPECT_FLOAT_EQ(p.update(-1e30f, 0.0f), -0.5f);
+}
+
+TEST(PidOutput, HeldOutputOnBadInputIsWithinLimits) {
+    fc::Pid p;
+    ASSERT_TRUE(configure(p, 10.0f, 0.0f, 0.0f));
+    ASSERT_TRUE(p.setOutLimit(0.5f));
+    ASSERT_FLOAT_EQ(p.update(1.0f, 0.0f), 0.5f);
+    EXPECT_FLOAT_EQ(p.update(kNaN, 0.0f), 0.5f);  // held value is the clamped one
+}
+
+TEST(PidOutput, SetOutLimitRejectsInvalidValues) {
+    fc::Pid p;
+    EXPECT_FALSE(p.setOutLimit(0.0f));
+    EXPECT_FALSE(p.setOutLimit(-0.5f));
+    EXPECT_FALSE(p.setOutLimit(kNaN));
+    EXPECT_FALSE(p.setOutLimit(kInf));
+    EXPECT_TRUE(p.setOutLimit(0.5f));
+}
+
+TEST(PidOutput, FailedSetOutLimitLeavesLimitUnchanged) {
+    fc::Pid p;
+    ASSERT_TRUE(configure(p, 10.0f, 0.0f, 0.0f));
+    ASSERT_TRUE(p.setOutLimit(0.5f));
+    EXPECT_FALSE(p.setOutLimit(kNaN));
+    EXPECT_FALSE(p.setOutLimit(-1.0f));
+    EXPECT_FALSE(p.setOutLimit(kInf));
+    EXPECT_FLOAT_EQ(p.update(1.0f, 0.0f), 0.5f);
+    EXPECT_FLOAT_EQ(p.update(-1.0f, 0.0f), -0.5f);
 }

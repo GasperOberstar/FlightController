@@ -20,6 +20,13 @@ namespace fc{
         return true;
     }
 
+    bool Pid::setOutLimit(float limit){
+        if(!(limit>0.0f && isFinite(limit)))
+            return false;
+        outLimit_=limit;
+        return true;
+    }
+
     void Pid::reset(float setpoint,float measurement){
         prevMeasurement_=measurement;
         iTerm_=0.0f;
@@ -46,7 +53,7 @@ namespace fc{
             const float rawFF=Kff_*(setpoint-prevSetpoint_);
             prevMeasurement_=measurement;
             prevSetpoint_=setpoint;
-            prevOutput_=P+iTerm_+dFilter_.apply(rawD)+ffFilter_.apply(rawFF);
+            prevOutput_=clamp(P+iTerm_+dFilter_.apply(rawD)+ffFilter_.apply(rawFF), -outLimit_, outLimit_);
         }
         return prevOutput_;
     }
