@@ -10,6 +10,7 @@ FetchContent_MakeAvailable(googletest)
 add_executable(fc_tests
     test_pt1.cpp
     test_pid.cpp
+    test_mixer.cpp
 )
 target_link_libraries(fc_tests PRIVATE fc_core fc_warnings GTest::gtest_main)
 
