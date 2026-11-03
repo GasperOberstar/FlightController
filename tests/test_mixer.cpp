@@ -124,17 +124,27 @@ TEST(Mixer, OutputsAlwaysWithinZeroToOne) {
                     }
                 }
 }
-
-TEST(Mixer, PlainClampDistortsDifferencesNearSaturation) {
-    // Documents CURRENT behavior: with a per-motor clamp, throttle 0.9 and
-    // roll 0.3 give left = 1.2 -> 1.0 and right = 0.6, so the left/right
-    // difference is 0.4 instead of the commanded 0.6.
-    // When you implement the uniform shift, change this test to expect
-    // the difference to be preserved (0.6).
+TEST(Mixer, ShiftPreservesDifferencesNearTopSaturation) {
     const auto out = mixOk(0.9f, 0.3f, 0.0f, 0.0f);
-    EXPECT_FLOAT_EQ(out[kRL], 1.0f);
-    EXPECT_FLOAT_EQ(out[kRR], 0.6f);
-    EXPECT_LT(out[kRL] - out[kRR], 0.6f - 1e-3f);
+    EXPECT_NEAR(out[kRL], 1.0f, 1e-6);
+    EXPECT_NEAR(out[kFL], 1.0f, 1e-6);
+    EXPECT_NEAR(out[kRR], 0.4f, 1e-6);
+    EXPECT_NEAR(out[kFR], 0.4f, 1e-6);
+}
+
+TEST(Mixer, ShiftPreservesDifferencesNearBottomSaturation) {
+    const auto out = mixOk(0.1f, 0.3f, 0.0f, 0.0f);
+    EXPECT_NEAR(out[kRR], 0.0f, 1e-6);
+    EXPECT_NEAR(out[kRL], 0.6f, 1e-6);
+}
+
+TEST(Mixer, LargeSpreadIsScaledNotClamped) {
+    // d = {+0.8, -0.8, 0, 0}: roll 0.4 + pitch 0.4 gives FL +0.8, RR -0.8.
+    const auto out = mixOk(0.5f, 0.4f, 0.4f, 0.0f);
+    EXPECT_NEAR(out[kFL], 1.0f, 1e-6);
+    EXPECT_NEAR(out[kRR], 0.0f, 1e-6);
+    EXPECT_NEAR(out[kFR], 0.5f, 1e-6);
+    EXPECT_NEAR(out[kRL], 0.5f, 1e-6);
 }
 
 // ---------- invalid input ----------
