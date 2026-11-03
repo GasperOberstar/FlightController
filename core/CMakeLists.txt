@@ -1,6 +1,7 @@
 add_library(fc_core STATIC
     src/pt1.cpp
     src/pid.cpp
+    src/mixer.cpp
 )
 
 target_include_directories(fc_core PUBLIC include)

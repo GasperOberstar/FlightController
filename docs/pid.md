@@ -249,4 +249,4 @@ Tests were also verified by deliberately breaking the code (flipped
 self-assigned `prevSetpoint_`) and checking that the matching tests go
 red. One such experiment also exposed a silent-default trap: with the
 output limit defaulting to 0, every nonzero-output test failed until
-`configure()` set a limit.
+`configure()` set a limit.  
