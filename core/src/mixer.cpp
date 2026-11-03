@@ -5,7 +5,7 @@
 #include <array>
 
 namespace fc{
-    /* roll -> right side up
+    /* roll -> right side down
        pitch -> nose up
        yaw -> nose right
     */
@@ -18,15 +18,16 @@ namespace fc{
                                                    { 1.0f,  1.0f,  1.0f},  // 3 front-left,  CCW
     }};
     
-    bool mix(float throttle, float roll, float pitch, float yaw, std::array<float,4>& out){
+    MixResult mix(float throttle, float roll, float pitch, float yaw, std::array<float,4>& out){
         if(!(isFinite(throttle) && isFinite(roll) && isFinite(pitch) && isFinite(yaw)))
-            return false;
+            return MixResult{};
         std::array<float, 4> rawOut{{0.0f,0.0f,0.0f,0.0f}};
         for(std::size_t i=0; i<out.size(); ++i){
             rawOut[i] = throttle+roll*kMixTable[i].roll+pitch*kMixTable[i].pitch+yaw*kMixTable[i].yaw;
         }
         const float spread=*std::max_element(rawOut.begin(), rawOut.end())-*std::min_element(rawOut.begin(), rawOut.end());
         float shift=0.0f;
+        float scale=1.0f;
         if(spread<=1.0f){
             const float lo=*std::min_element(rawOut.begin(), rawOut.end());
             const float hi=*std::max_element(rawOut.begin(), rawOut.end());
@@ -36,7 +37,7 @@ namespace fc{
             }
         }
         else{
-            float scale=1.0f/spread;
+            scale=1.0f/spread;
             std::array<float, 4> d{{0.0f,0.0f,0.0f,0.0f}};
             for(std::size_t i=0; i<out.size(); ++i){
                 d[i]=rawOut[i]-throttle;
@@ -48,6 +49,11 @@ namespace fc{
                 out[i]=clamp(d[i]*scale+throttle+shift, 0.0f, 1.0f);
             }
         }
-        return true;
+        MixResult r;
+        r.ok=true;
+        r.scale=scale;
+        r.shift=shift;
+        r.saturated=(scale<1.0f) || (shift!=0.0f);
+        return r;
     }
 }
