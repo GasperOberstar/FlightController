@@ -11,8 +11,9 @@ add_executable(fc_tests
     test_pt1.cpp
     test_pid.cpp
     test_mixer.cpp
+    test_plant.cpp
 )
-target_link_libraries(fc_tests PRIVATE fc_core fc_warnings GTest::gtest_main)
+target_link_libraries(fc_tests PRIVATE fc_core fc_sim fc_warnings GTest::gtest_main)
 
 include(GoogleTest)
 gtest_discover_tests(fc_tests)
