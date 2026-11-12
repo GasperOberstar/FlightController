@@ -1,6 +1,7 @@
 # Build output
 build/
 out/
+sim_output/
 cmake-build-*/
 *.o
 *.obj
