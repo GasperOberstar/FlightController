@@ -9,7 +9,7 @@ namespace sim{
         std::mt19937 rng_;
         std::normal_distribution<float> unitNormal_{0.0f, 1.0f};
         float noiseStd_=0.0f;
-        std::vector<float> delayLine_;
+        std::vector<float> delayLine_ = std::vector<float>(1, 0.0f);
         std::size_t head_=0;
         float lastOutput_=0.0f;
         float bias_=0.0f;
