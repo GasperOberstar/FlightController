@@ -15,7 +15,8 @@ namespace sim{
         float bias_=0.0f;
 
     public:
-        [[nodiscard]]bool configure(float noiseStd, unsigned seed, std::size_t delaySample, float initialRate=0.0f, float bias);
+        [[nodiscard]]bool configure(float noiseStd, unsigned seed, std::size_t delaySample, float bias=0.0f,  float initialRate=0.0f);
         [[nodiscard]]float sample(float trueRate);
+        void reset(float initalRate);
     };
 }
