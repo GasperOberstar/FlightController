@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Plot a rate-loop simulation CSV (t, setpoint, gyro, cmd, rate).
+"""Plot a rate-loop simulation CSV (t, setpoint, measured, gyro, cmd, rate).
+
+'measured' is optional, so older CSVs without it still plot.
 
 Usage:
     python tools/plot_rate_loop.py sim_output/rate_loop.csv
@@ -19,12 +21,17 @@ def main() -> int:
 
     data = np.genfromtxt(path, delimiter=",", names=True)
     t = data["t"]
+    has_measured = "measured" in data.dtype.names
 
     fig, (ax_rate, ax_cmd) = plt.subplots(
         2, 1, sharex=True, figsize=(10, 7),
         gridspec_kw={"height_ratios": [3, 1]},
     )
 
+    # Raw sensor output first, faint, so the other traces stay readable.
+    if has_measured:
+        ax_rate.plot(t, data["measured"], color="tab:gray", alpha=0.35,
+                     linewidth=0.8, label="measured (noisy, delayed)")
     ax_rate.plot(t, data["setpoint"], "k--", label="setpoint")
     ax_rate.plot(t, data["rate"], label="true rate")
     ax_rate.plot(t, data["gyro"], label="gyro (filtered)", alpha=0.8)
@@ -52,6 +59,10 @@ def main() -> int:
         else:
             title += ", never reached 90%"
         ax_rate.set_title(f"{path.name}: {title} (step at {t_step:.3f} s)")
+
+    # Command noise: std of cmd after the step has settled (last 20% of run).
+    tail = data["cmd"][int(0.8 * len(t)):]
+    ax_cmd.set_title(f"cmd std over last 20% of run: {tail.std():.4f}", fontsize=9)
 
     fig.tight_layout()
     out = path.with_suffix(".png")

@@ -32,5 +32,5 @@ namespace sim{
     delayLine_.assign(delayLine_.size(), initialRate);
     head_ = 0;
     lastOutput_ = initialRate + bias_;
-}
+    }
 }
