@@ -1,4 +1,4 @@
-add_library(fc_sim STATIC src/plant_SingleAxis.cpp)
+add_library(fc_sim STATIC src/plant_SingleAxis.cpp src/gyro_model.cpp)
 target_include_directories(fc_sim PUBLIC include)
 target_link_libraries(fc_sim PUBLIC fc_core)
 
